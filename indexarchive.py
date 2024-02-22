@@ -1,6 +1,5 @@
 import streamlit as st
 import pandas as pd
-import seaborn as sns
 import matplotlib.pyplot as plt
 from sqlalchemy.engine import URL
 from sqlalchemy import create_engine
@@ -59,18 +58,20 @@ def plot_optional_donut_chart(df, label_to_remove=None):
         labels = df['CustomerName']
         values = df['BillTotal']
 
-    plt.figure(figsize=(10, 8))  # Increase figure size
+    fig, ax = plt.subplots(figsize=(10, 8))  # Increase figure size
 
     # Explode slices for better readability
     explode = [0.1 if i == values.idxmax() else 0 for i in range(len(values))]
     
-    plt.pie(values, labels=labels, autopct='%1.1f%%', startangle=90, explode=explode, wedgeprops=dict(width=0.4))
-    plt.axis('equal')  # Keep it a circle
+    ax.pie(values, labels=labels, autopct='%1.1f%%', startangle=90, explode=explode, wedgeprops=dict(width=0.4))
+    ax.axis('equal')  # Keep it a circle
     
     # Use a legend for better readability
-    plt.legend(loc="best", bbox_to_anchor=(1, 1), labels=labels, title="Customers")
+    ax.legend(loc="best", bbox_to_anchor=(1, 1), labels=labels, title="Customers")
     
-    plt.title('Sales Per Customer -  Donut Chart')
+    ax.set_title('Sales Per Customer - Donut Chart')
+    
+    st.pyplot(fig)
 
 def app():
     st.title("Database Connection Setup")
@@ -101,14 +102,9 @@ def app():
             st.subheader("Top Sold Items")
             st.write(df_top_sold_items)
 
-            # Create Seaborn bar chart for top sold items
+            # Create Streamlit bar chart for top sold items
             st.subheader("Top Sold Items Visualization")
-            fig_sold_items, ax_sold_items = plt.subplots()
-            ax_sold_items = sns.barplot(data=df_top_sold_items, x="tot_qty", y="productname", estimator="sum",hue="tot_qty")
-            ax_sold_items.bar_label(ax_sold_items.containers[0], fontsize=10)
-            ax_sold_items.set_xticklabels(ax_sold_items.get_xticklabels(), rotation=90, ha="right")
-            plt.tight_layout()
-            st.pyplot(fig_sold_items)
+            st.bar_chart(df_top_sold_items.set_index('productname')['tot_qty'])
 
             # Fetch top customers and display in DataFrame
             no_of_customers = st.number_input("How many top customers do you want to see?", min_value=1, value=5)
@@ -116,27 +112,9 @@ def app():
             st.subheader("Top Customers")
             st.write(df_top_customers)
 
-            
-
-            # Create Seaborn bar chart for top customers
+            # Create Streamlit bar chart for top customers
             st.subheader("Top Customers Visualization")
-
-            # Style settings
-            sns.set_palette("viridis")
-            sns.set_style("whitegrid")
-
-            # Create a beautiful bar chart
-            fig_customers, ax_customers = plt.subplots(figsize=(10, 6))
-            ax_customers = sns.barplot(data=df_top_customers, x="TotalBillAmount", y="CustomerName", estimator="sum", ci=None, palette="viridis", saturation=0.75)
-            ax_customers.bar_label(ax_customers.containers[0], fontsize=10, fmt="%d")  # Display labels with integer formatting
-
-            # Customize labels and ticks
-            ax_customers.set_xlabel("Total Bill Amount", fontsize=12, fontweight="bold")
-            ax_customers.set_ylabel("Customer Name", fontsize=12, fontweight="bold")
-            ax_customers.tick_params(axis="both", labelsize=10)
-
-            plt.tight_layout()
-            st.pyplot(fig_customers)
+            st.bar_chart(df_top_customers.set_index('CustomerName')['TotalBillAmount'])
 
             # New section for sales per customer
             st.subheader("Sales Per Customer")
@@ -161,19 +139,15 @@ def app():
                     # Visualization with optional removal
                     st.subheader("Sales Per Customer Visualization (excluding selected customer)")
                     plot_optional_donut_chart(df_sales_per_customer, selected_customer)
-                    st.pyplot(plt.gcf())
                 else:
                     # Visualization without removal
                     st.subheader("Sales Per Customer Visualization")
                     plot_optional_donut_chart(df_sales_per_customer)
-                    st.pyplot(plt.gcf())
             else:
                 # Visualization without removal
                 st.subheader("Sales Per Customer Visualization")
                 plot_optional_donut_chart(df_sales_per_customer)
-                st.pyplot(plt.gcf())
 
-                
         except Exception as e:
             st.error(f"Failed to connect or retrieve data: {e}")
     else:
